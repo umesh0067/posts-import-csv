@@ -1,0 +1,9 @@
+input.um_custom_widget_text, textarea.um_custom_widget_textarea {
+    width: 50%;
+}
+div#wp-um_custom_widget_editor-wrap {
+    width: 85%;
+}
+input.um_custom_widget_date, input#um_custom_widget_image {
+    width: 30%;
+}
