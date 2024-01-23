@@ -35,15 +35,28 @@ add_action('admin_enqueue_scripts', 'um_custom_cpt_enqueue_scripts');
 
 // Add admin menu page in admin side
 add_action( 'admin_menu', 'csv_upload_options_page' );
+
 function csv_upload_options_page() {
     add_menu_page(
-        'CSV Upload Settings',
-        'CSV Upload',
+        __( 'CSV Upload Settings', 'um-import-cpt' ),
+        __( 'CSV Upload', 'um-import-cpt' ),
         'manage_options',
         'csv_upload_settings',
-        'csv_upload_settings_page'
+        'csv_upload_settings_page',
+        'dashicons-database-import',
+        6
+    );
+
+    add_submenu_page(
+        'csv_upload_settings',
+        __( 'CSV Settings', 'um-import-cpt' ),
+        __( 'CSV Settings', 'um-import-cpt' ),
+        'manage_options', 
+        'csv_settings_page',
+        'csv_settings_page_callback'
     );
 }
+
 
 // Add option settings fields form
 function csv_upload_settings_page() {
@@ -63,6 +76,47 @@ function csv_upload_settings_page() {
     </div>
     <?php
 }
+
+function csv_settings_page_callback() {
+    // Check if the form is submitted
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // Verify nonce for security
+        if (isset($_POST['_wpnonce']) && wp_verify_nonce($_POST['_wpnonce'], 'csv_settings_nonce')) {
+            // Update the post name option
+            $post_name = sanitize_text_field($_POST['post_name']);
+            update_option('post_name', $post_name);
+            echo '<div class="updated"><p>' . __('Post name saved successfully.', 'um-import-cpt') . '</p></div>';
+        }
+    }
+
+    // Display the form
+    ?>
+    <div class="wrap">
+        <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
+
+        <form method="post" action="">
+            <?php
+            // Output nonce field for security
+            wp_nonce_field('csv_settings_nonce', '_wpnonce');
+            ?>
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="post_name"><?php _e('Post Name', 'um-import-cpt'); ?></label>
+                    </th>
+                    <td>
+                        <input type="text" name="post_name" id="post_name" value="<?php echo esc_attr(get_option('post_name')); ?>" class="regular-text" />
+                        <p class="description"><?php _e('Enter the name of the custom post name.', 'um-import-cpt'); ?></p>
+                    </td>
+                </tr>
+            </table>
+            <?php submit_button(__('Save Changes', 'um-import-cpt')); ?>
+        </form>
+    </div>
+    <?php
+}
+
+
 
 // Add option section, fields settings and register settings.
 function csv_upload_init() {
@@ -136,6 +190,9 @@ function csv_upload_csv_field_callback() {
 // Uploaded file for process data and add posts 
 function process_uploaded_csv_data($file_id) {
 
+    // get custom post name by admin side
+    $custom_post_name = esc_attr(get_option('post_name'));
+
     //$file_path = get_attached_file($file_id);
 	$file_path = $file_id['tmp_name'];
 
@@ -187,7 +244,7 @@ function process_uploaded_csv_data($file_id) {
         if(!empty($post_data[0])) {
             // Adjust the post data as needed, customize the post type and meta keys accordingly
             $post_args = array(
-                'post_type'   => 'um_directory',  // Customize post type as needed
+                'post_type'   => 'um_'.$custom_post_name,  // Customize post type as needed
                 'post_status' => 'publish',
                 'post_title'  => $post_title,
                 'post_content' => $post_content,
@@ -300,11 +357,15 @@ function upload_and_attach_image($image_url, $post_id) {
 
 // Register custom post type as directory.
 function register_directory_custom_post_type() {
-    register_post_type('um_directory',
+
+    // get custom post name by admin side
+    $custom_post_name = esc_attr(get_option('post_name'));
+    
+    register_post_type('um_'.$custom_post_name,
         array(
             'labels'      => array(
-                'name'          => __('Directory', 'textdomain'),
-                'singular_name' => __('Directory', 'textdomain'),
+                'name'          => __($custom_post_name, 'textdomain'),
+                'singular_name' => __($custom_post_name, 'textdomain'),
             ),
             'public'      => true,
             'has_archive' => true,
